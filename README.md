@@ -12,4 +12,4 @@ miscellaneous scripts
 
 
 ###[swarm](https://hpc.nih.gov/apps/swarm.html)  
-  This is a simplistic version of the complicated swarm developed at NIH Biowulf.  
+  This is a simplistic version of the sophisticated swarm developed at NIH Biowulf.  
