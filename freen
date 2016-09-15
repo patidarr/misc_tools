@@ -1,0 +1,79 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+#use List::MoreUtils qw(uniq);
+my $pbs =`pbsnodes`;
+my @nodes = split "\n\n", $pbs;
+print "\n\n--------------------------------------------------------------\n";
+print "    Node\tnp\tncpus\tMemory\t Status\t\tJobIds\n";
+print "                     Avail/Total                \n";
+print "--------------------------------------------------------------\n";
+my @arr;
+foreach my $node(@nodes){
+	my ($state, $np, $ncpus, $mem, $jobs, @cores, @running_jobIds);
+	#if($node =~ /login/){
+	#	next;
+	#}
+	my @prop =split("\n", $node);
+	if($node =~ /state = (.*)/){
+		$state =$1;
+	}
+	if($node =~ /np = (.*)/){
+		$np =$1;
+	}
+	if($node =~ /ncpus=(\d+),/){
+		$ncpus =$1;
+	}
+	if($node =~ /physmem=(\d+)kb,/){
+		$mem = int(($1 / 1024)/1024);
+		$mem .= "GB";
+	}
+	if ($node =~ /jobs = (.*)/){
+		#print $1;
+		$jobs =$1;
+		$jobs =~ s/\s+//g;
+		$jobs =~ s/.master.cm.cluster//g;
+		my @arr = split(",", $jobs);
+		foreach my $core (@arr){
+			my @tmp = split("/", $core);
+			#print "$core\t$tmp[0]\t\t$tmp[1]\n";
+			push @cores, $tmp[0];
+			push @running_jobIds, $tmp[1];
+		}	
+	}
+	@cores = do { my %seen; grep { !$seen{$_}++ } @cores };
+	@running_jobIds = do { my %seen; grep { !$seen{$_}++ } @running_jobIds };
+	@running_jobIds =sort @running_jobIds;
+	$prop[0]  =~ s/login/  login/g;
+	$state =~ s/free/  free  /g;
+	$state =~ s/down/  down  /g;
+	$state =~ s/job-exclusive/running/g;
+	my $remain;
+	if ($#cores >=0){
+		$remain = $ncpus-($#cores + 1 );
+		if (($#cores + 1 ) < $ncpus){
+			$state  = "partial";
+		}
+	}
+	else{
+		$remain =$ncpus;
+	}
+	print "$prop[0]\t$np\t$remain/$ncpus\t$mem\t$state\t";
+	if ($#cores >=0){
+		#print "\t".join(",", @cores);
+		print "\t".join(",", @running_jobIds);
+	}
+	print "\n";
+	#$state =~ s/\s+//g;
+	push @arr, "$np\t$ncpus\t$mem\t $state ";
+}
+print "--------------------------------------------------------------\n";
+print "\nnp\tncpus\tMemory\tStatus     \t   # Nodes\n";
+my %counts;
+$counts{$_}++ for @arr;
+
+foreach (sort keys %counts){
+	print "$_\t      $counts{$_}\n";
+}
+print "--------------------------------------------------------------\n\n\n";
+

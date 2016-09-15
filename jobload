@@ -1,0 +1,91 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+=head1
+63142.master.cm.cluster
+    Job_Name = deFuse.9 Job_Owner = patidarr@tgcompute31
+    resources_used.cput = 10:06:11
+    resources_used.mem = 45694796kb
+    resources_used.vmem = 54451636kb
+    resources_used.walltime = 00:53:22
+    job_state = R
+    queue = hmem
+    server = master.cm.cluster
+    Checkpoint = u
+    ctime = Sat Sep 10 08:56:45 2016
+    exec_host = tgcompute08/15+tgcompute08/14+tgcompute08/13+tgcompute08/12+tgcompute08/11+tgcompute08/10+tgcompute08/9+tgcompute08/8+tgcompute08/7+tgcompute08/6+tgcompute08/5+tgcompute08/4+tgcompute08/3+tgcompute08/2+tgcompute08/1+tgcompute08/0
+    Hold_Types = n
+    Join_Path = n
+    Keep_Files = n
+    Mail_Points = a
+    mtime = Sat Sep 10 08:57:19 2016
+    Priority = 0
+    qtime = Sat Sep 10 08:56:45 2016
+    Rerunable = True
+    Resource_List.mem = 200gb
+    Resource_List.nodect = 1
+    Resource_List.nodes = 1:ppn=16
+    Resource_List.walltime = 96:00:00
+    session_id = 2069
+    comment = Job started on Sat Sep 10 at 08:56
+    etime = Sat Sep 10 08:56:45 2016
+    submit_args = -W umask=022 -V -e /projects/Clinomics/ProcessedResults//log/ -o /projects/Clinomics/ProcessedResults//log/ -q hmem -l nodes=1:ppn=16,mem=200gb,walltime=96:00:00 /projects/Clinomics/ProcessedResults/.snakemake/tmp.cplg2stb/deFuse.9
+    umask = 18
+    start_time = Sat Sep 10 08:57:19 2016
+    Walltime.Remaining = 342327
+    start_count = 1
+    fault_tolerant = False
+    job_radix = 0
+    submit_host = tgcompute31.cm.cluster
+=cut
+print "Queue\tJob Id\t  User\t           Node\t       Mem Used\tV Mem\tReq'd time\tWalltime\tCPUtime\t         JobName\n";
+print "-------------------------------------------------------------------------------------------------------------------\n";
+my $QSTAT_F= `qstat -f -1 `;
+my @nodes = split "Job Id: ", $QSTAT_F;
+foreach (@nodes) {
+	chomp;
+	if ($_=~ /^$/){
+		next;
+	}
+	if (/job_state = Q/ or /job_state = C/){
+		next;
+	}
+	#print "#####$_#####\n";
+	if(/queue = (.*)/){
+		print "$1\t";
+	}
+	if(/^(\d+\[?\d+?\]?)\.master\.cm\.cluster/) {
+		print "$1\t";
+	}
+	if(/Job_Owner = (\w+)\@/) {
+		print "$1\t";
+	}
+	if(/exec_host = (.*)\//){
+		my @arr =split("/", $1);
+		print "$arr[0]\t";
+	}
+	if(/resources_used.mem = (\d+)kb/){
+		my $mem = int(($1/1024)/1024);
+		$mem .= "gb";
+		print "$mem\t";
+	}
+	if(/resources_used.vmem = (\d+)kb/){
+		my $mem = int(($1/1024)/1024);
+		$mem .= "gb";
+		print "$mem\t";
+	}
+	if(/Resource_List.walltime = (\d+:\d\d:\d\d)/){
+		print "$1\t";
+	}
+	if(/resources_used.walltime = (\d+:\d\d:\d\d)/) {
+		print "$1\t";
+	}
+	if(/resources_used.cput = (\d+:\d+:\d+)/){
+		print "$1\t";
+	}
+	if (/Job_Name = (.*)/){
+		print "$1\t";
+	}
+	print "\n";
+}
+print "-------------------------------------------------------------------------------------------------------------------\n";

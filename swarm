@@ -1,0 +1,109 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Getopt::Long;
+use Pod::Usage;
+use Time::Piece;
+
+my $file = '';
+my $ncpus = '1';
+my $mem= '3';
+my @modules;
+my $no_of_jobs_per_node = 16;
+my $total_memory = 48;
+my $ppn;
+my $help;
+my $qsub = "qsub";
+GetOptions(
+	'f=s'         =>\$file,
+	't=s'         =>\$ncpus,
+	'g=s'	      =>\$mem,
+	'module=s'    =>\@modules,
+	'help|h'      =>\$help,
+	)or pod2usage();
+
+$help and pod2usage ();
+
+if (!$file){
+        print STDERR "ERROR: must specify '-f cmdfile'  See swarm --help\n";
+        exit;
+}
+if (!$ncpus){
+        print STDERR "1 job per code will be submitted\n";
+}
+
+my $totalJobs = `wc -l $file |sed -e 's/ /\t/g'|cut -f 1`;
+chomp $totalJobs;
+if($totalJobs >=3500){
+        print STDERR "Can't not handle so many jobs!!\n";
+        exit;
+}
+$no_of_jobs_per_node = int(16 / $ncpus);
+$ppn = $ncpus * $no_of_jobs_per_node;
+if($ppn >16){
+	$ppn =16;
+}
+$total_memory = $ppn * $mem;
+
+if($total_memory >48){
+        print STDERR "Most memory node is 48gb\n";
+        exit;
+}
+$total_memory .= "gb";
+my $home=`pwd`;
+chop $home;
+if( -e "$home/.swarm"){
+	unlink glob("$home/.swarm/*");
+}
+elsif(not -e "$home/.swarm" and -w $home){
+	mkdir "$home/.swarm";
+}
+else{
+	print STDERR "Can not make .swarm folder\n";
+	print STDERR "You do not have write permissions\n";
+	exit;
+}
+`cp $file $home/.swarm/$file`;
+chdir "$home/.swarm/";
+`split -a 4 -d -l $no_of_jobs_per_node $file cmdFile`;
+`rm -rf $file`;
+my @files = glob("$home/.swarm/cmdFile*");
+foreach my $file (@files){
+	open(IN, $file);
+	open(OUT, ">$file.sh");
+	print OUT "#!/bin/sh\n";
+	print OUT "#PBS -N swarm\n";
+	print OUT "cd $home\n";
+	if (@modules){
+		foreach my $mod (@modules){
+			print OUT "module load $mod\n";
+		}
+	}
+	while(<IN>){
+		chomp;
+		print OUT "($_ ) &\n";
+	}
+	print OUT "wait\n";
+	print OUT "rm -rf $file.sh\n";
+	close IN;
+	close OUT;
+	unlink $file;
+	my $tmp=`basename $file`;
+	chomp $tmp;
+#  	print "$qsub -l nodes=1:ppn=$ppn,mem=$total_memory,walltime=96:00:00 $file.sh -e $home/ -o $home/\n";
+	`$qsub -l nodes=1:ppn=$ppn,mem=$total_memory,walltime=96:00:00 $file.sh -e $home/ -o $home/`;
+}
+
+=head1 SYNOPSIS
+
+ swarm -f cmdFile -t 2
+ Usage:
+	-h, -help, --help Print this message.
+	-f      File containing the commands
+	-t      Number of cores needed for each job (default 2)
+	-g      Memory required for the job (default 2gb)
+	-module multiple modules can be included.
+
+ For questions or comments, please contact: Rajesh Patidar <rajbtpatidar@gmail.com>
+
+=cut
