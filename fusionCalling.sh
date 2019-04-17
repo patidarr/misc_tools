@@ -26,8 +26,8 @@ STAR   	--runThreadN 8\
 module load  picard
 java -jar /usr/local/apps/picard/2.18.27/picard.jar MarkDuplicates\
 	INPUT=$dir/Aligned.sortedByCoord.out.bam\
-	OUTPUT=$dir/UHR-3671949.bam\
-	METRICS_FILE=$dir/UHR-36719490.dd.mat\
+	OUTPUT=$dir/${sample}.bam\
+	METRICS_FILE=$dir/${sample}.dd.mat\
 	CREATE_INDEX=true\
 	MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP=50000\
 	MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=8000\
@@ -47,7 +47,7 @@ java -jar /usr/local/apps/picard/2.18.27/picard.jar MarkDuplicates\
 
 
 module load manta
-configManta.py --bam $dir/UHR-3671949.bam\
+configManta.py --bam $dir/${sample}.bam\
 	--referenceFasta /data/MoCha/patidarr/ref/ucsc.hg19.fasta\
 	--runDir $dir/manta\
 	--generateEvidenceBam \
